@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Large/generated data
+/data/raw/*
+/data/processed/*
+!/data/raw/README.docx
+!/data/raw/bird_sql/
+!/data/raw/bird_sql/README.docx
+!/data/raw/spider/
+!/data/raw/spider/README.docx
+!/data/processed/README.docx
+
+# Outputs
+outputs/
+runs/
+logs/
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
