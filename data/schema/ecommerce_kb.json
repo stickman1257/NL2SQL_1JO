@@ -2,7 +2,7 @@
   "orders.status": {
     "table": "orders",
     "column": "status",
-    "current_description": "이 컬럼은 주문의 상태를 나타내는 값으로, 환불, 취소, 처리 중 등 여러 상태가 존재합니다.",
+    "current_description": "이 컬럼은 주문의 상태를 나타내는 열로, 주문이 환불, 취소, 처리 중 등 다양한 상황에 따라 달라집니다. 따라서 해당 주문의 처리 상태를 파악하고, 필요한 경우 그 상태에 따른 다른 정보(예: 총 금액, 고객 이메일 등)를 조회할 수 있습니다.",
     "history": [
       {
         "description": "'orders.status' (TEXT) — 텍스트형. 고유값: 5개, 값: ['cancelled', 'completed', 'pending', 'processing', 'refunded'], NULL: 0/10건. 자주 Hard 쿼리에서 참조됨.",
@@ -21,13 +21,19 @@
         "version": 3,
         "updated_at": "2026-06-03T10:35:03.717435",
         "source": "schema_enricher"
+      },
+      {
+        "description": "이 컬럼은 주문의 상태를 나타내는 열로, 주문이 환불, 취소, 처리 중 등 다양한 상황에 따라 달라집니다. 따라서 해당 주문의 처리 상태를 파악하고, 필요한 경우 그 상태에 따른 다른 정보(예: 총 금액, 고객 이메일 등)를 조회할 수 있습니다.",
+        "version": 4,
+        "updated_at": "2026-06-12T21:19:48.264664",
+        "source": "schema_enricher"
       }
     ]
   },
   "customers.tier": {
     "table": "customers",
     "column": "tier",
-    "current_description": "이 컬럼은 고객의 등급을 나타내는 컬럼으로, VIP, 골드, 플래 등 다양한 등급으로 분류됩니다.",
+    "current_description": "이 컬럼은 고객의 등급을 나타내는 열로, 'Bronze', 'Silver', 'Gold', 'Platinum', 'VIP' 등 다양한 등급을 가질 수 있습니다. 고객의 등급은 그들의 구매 패턴과 혜택에 따라 결정되며, 특정 고객의 총 구매 금액을 계산하거나, 고객별로 환불 이력이 있는 고객을 찾을 때 필수 정보입니다.",
     "history": [
       {
         "description": "'customers.tier' (TEXT) — 텍스트형. 고유값: 3개, 값: ['gold', 'standard', 'vip'], NULL: 0/5건. 자주 Hard 쿼리에서 참조됨.",
@@ -46,13 +52,19 @@
         "version": 3,
         "updated_at": "2026-06-03T10:35:07.668286",
         "source": "schema_enricher"
+      },
+      {
+        "description": "이 컬럼은 고객의 등급을 나타내는 열로, 'Bronze', 'Silver', 'Gold', 'Platinum', 'VIP' 등 다양한 등급을 가질 수 있습니다. 고객의 등급은 그들의 구매 패턴과 혜택에 따라 결정되며, 특정 고객의 총 구매 금액을 계산하거나, 고객별로 환불 이력이 있는 고객을 찾을 때 필수 정보입니다.",
+        "version": 4,
+        "updated_at": "2026-06-12T21:20:23.586363",
+        "source": "schema_enricher"
       }
     ]
   },
   "customers.customer_id": {
     "table": "customers",
     "column": "customer_id",
-    "current_description": "이 컬럼은 고객 식별용 고유번호로, 고객 이름과 고객 등급을 포함하고 있습니다.",
+    "current_description": "이 컬럼은 고객 식별 번호를 나타내며, 특정 고객의 주문, 환불 여부, 등급 등을 포함하는 주문 테이블과 연관되어 있습니다. 따라서 이 컬럼은 고객의 주문 정보와 그들의 구매 패턴을 분석하는데 사용될 수 있습니다.",
     "history": [
       {
         "description": "'customers.customer_id' (INTEGER) — 숫자형. 범위: 1 ~ 5, 평균: 3.0, NULL: 0/5건. 자주 Hard 쿼리에서 참조됨.",
@@ -71,13 +83,19 @@
         "version": 3,
         "updated_at": "2026-06-03T10:35:04.971353",
         "source": "schema_enricher"
+      },
+      {
+        "description": "이 컬럼은 고객 식별 번호를 나타내며, 특정 고객의 주문, 환불 여부, 등급 등을 포함하는 주문 테이블과 연관되어 있습니다. 따라서 이 컬럼은 고객의 주문 정보와 그들의 구매 패턴을 분석하는데 사용될 수 있습니다.",
+        "version": 4,
+        "updated_at": "2026-06-12T21:19:58.081484",
+        "source": "schema_enricher"
       }
     ]
   },
   "orders.customer_id": {
     "table": "orders",
     "column": "customer_id",
-    "current_description": "이 컬럼은 주문을 식별하기 위해 사용되는 고유한 고객 식별자로, 각각의 주문에 대한 고객의 정보를 식별합니다.",
+    "current_description": "이 컬럼은 주문을 관리하는 데 사용되는 고객 ID를 포함하며, 이는 특정 고객의 주문, 환불, 평균 주문 금액, 총 구매 금액 등을 추적하는 데 필요합니다. 또한, 특정 고객의 주문이 환불되었는지, 고객의 등",
     "history": [
       {
         "description": "'orders.customer_id' (INTEGER) — 숫자형. 범위: 1 ~ 5, 평균: 3.0, NULL: 0/10건. 자주 Hard 쿼리에서 참조됨.",
@@ -96,13 +114,19 @@
         "version": 3,
         "updated_at": "2026-06-03T10:35:06.344136",
         "source": "schema_enricher"
+      },
+      {
+        "description": "이 컬럼은 주문을 관리하는 데 사용되는 고객 ID를 포함하며, 이는 특정 고객의 주문, 환불, 평균 주문 금액, 총 구매 금액 등을 추적하는 데 필요합니다. 또한, 특정 고객의 주문이 환불되었는지, 고객의 등",
+        "version": 4,
+        "updated_at": "2026-06-12T21:20:12.550275",
+        "source": "schema_enricher"
       }
     ]
   },
   "orders.total_amount": {
     "table": "orders",
     "column": "total_amount",
-    "current_description": "이 컬럼은 취소된 주문의 총 금액을 나타내고 있습니다.",
+    "current_description": "이 컬럼은 주문의 총 금액을 나타내며, 주문이 취소되었는지, 고객의 등급과 VIP 여부 등을 조건으로 선택할 수 있습니다. 따라서 이 컬럼은 다양한 조건에 따라 분석 및 통계를 수행할 수 있는 중요한 정보입니다.",
     "history": [
       {
         "description": "'orders.total_amount' (REAL) — 숫자형. 범위: 100.0 ~ 1000.0, 평균: 550.0, NULL: 0/10건. 자주 Hard 쿼리에서 참조됨.",
@@ -121,13 +145,19 @@
         "version": 3,
         "updated_at": "2026-06-03T10:35:08.913866",
         "source": "schema_enricher"
+      },
+      {
+        "description": "이 컬럼은 주문의 총 금액을 나타내며, 주문이 취소되었는지, 고객의 등급과 VIP 여부 등을 조건으로 선택할 수 있습니다. 따라서 이 컬럼은 다양한 조건에 따라 분석 및 통계를 수행할 수 있는 중요한 정보입니다.",
+        "version": 4,
+        "updated_at": "2026-06-12T21:20:34.828271",
+        "source": "schema_enricher"
       }
     ]
   },
   "customers.name": {
     "table": "customers",
     "column": "name",
-    "current_description": "이 컬럼은 고객 이름을 의미하며, VIP 고객 중 환불 이력이 있는 고객들을 나타내고 있습니다.",
+    "current_description": "이 컬럼은 고객의 이름을 나타내며, 이 고객이 VIP 고객인지, 환불 이력이 있는지, 그리고 그 고객이 얼마나 많이 쇠했는지를 포함하는 정보를 제공합니다.",
     "history": [
       {
         "description": "'customers.name' (TEXT) — 텍스트형. 고유값: 5개, 값: ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve'], NULL: 0/5건. 자주 Hard 쿼리에서 참조됨.",
@@ -146,13 +176,19 @@
         "version": 3,
         "updated_at": "2026-06-03T10:35:10.221508",
         "source": "schema_enricher"
+      },
+      {
+        "description": "이 컬럼은 고객의 이름을 나타내며, 이 고객이 VIP 고객인지, 환불 이력이 있는지, 그리고 그 고객이 얼마나 많이 쇠했는지를 포함하는 정보를 제공합니다.",
+        "version": 4,
+        "updated_at": "2026-06-12T21:20:40.470602",
+        "source": "schema_enricher"
       }
     ]
   },
   "products.name": {
     "table": "products",
     "column": "name",
-    "current_description": "이 컬럼은 상품의 이름을 나타내는 컬럼으로, 상품의 판매량이나 재고 수량과는 직접적으로 관련이 없습니다.",
+    "current_description": "이 컬럼은 제품의 이름을 나타내며, 상품별로 판매된 수량과 같은 정보를 포함할 수 있습니다. 이 컬럼은 다양한 검색 조건을 통해 제품을 찾거나, 특정 제품의 판매량을 확인하는데 사용될 수 있습니다.",
     "history": [
       {
         "description": "'products.name' (TEXT) — 텍스트형. 고유값: 5개, 값: ['Desk Chair', 'Laptop Pro', 'Notebook Set', 'USB-C Hub', 'Wireless Mouse'], NULL: 0/5건. 자주 Hard 쿼리에서 참조됨.",
@@ -171,13 +207,19 @@
         "version": 3,
         "updated_at": "2026-06-03T10:35:14.258849",
         "source": "schema_enricher"
+      },
+      {
+        "description": "이 컬럼은 제품의 이름을 나타내며, 상품별로 판매된 수량과 같은 정보를 포함할 수 있습니다. 이 컬럼은 다양한 검색 조건을 통해 제품을 찾거나, 특정 제품의 판매량을 확인하는데 사용될 수 있습니다.",
+        "version": 4,
+        "updated_at": "2026-06-12T21:20:47.538096",
+        "source": "schema_enricher"
       }
     ]
   },
   "order_items.quantity": {
     "table": "order_items",
     "column": "quantity",
-    "current_description": "이 컬럼은 주문에서 각각의 상품이 판매되는 수량을 나타내는 컬럼입니다.",
+    "current_description": "이 컬럼인 'order_items.quantity'는 주문에서 특정 제품의 수량을 나타내며, 주문 내에서 제품의 판매 수량을 측정하는 중요한 열입니다. 이를 통해 가장 많이 팔린 제품의 수량과 전자제품 카테고리에서 총 판매 금액 등을 파악할 수 있습니다.",
     "history": [
       {
         "description": "'order_items.quantity' (INTEGER) — 숫자형. 범위: 1 ~ 5, 평균: 1.9, NULL: 0/10건. 자주 Hard 쿼리에서 참조됨.",
@@ -196,13 +238,19 @@
         "version": 3,
         "updated_at": "2026-06-03T10:35:15.393344",
         "source": "schema_enricher"
+      },
+      {
+        "description": "이 컬럼인 'order_items.quantity'는 주문에서 특정 제품의 수량을 나타내며, 주문 내에서 제품의 판매 수량을 측정하는 중요한 열입니다. 이를 통해 가장 많이 팔린 제품의 수량과 전자제품 카테고리에서 총 판매 금액 등을 파악할 수 있습니다.",
+        "version": 4,
+        "updated_at": "2026-06-12T21:20:57.681170",
+        "source": "schema_enricher"
       }
     ]
   },
   "order_items.product_id": {
     "table": "order_items",
     "column": "product_id",
-    "current_description": "이 컬럼은 주문 상세 정보에서 각각의 상품 아이디를 포함하고 있으며, 이는 각각의 주문 내에서 어떤 제품이 포함되었는지 나타내는 컬럼입니다.",
+    "current_description": "이 커럼은 제품 ID를 나타내며, 이는 특정 제품이 얼마나 많이 판매되었는지, 어떤 제품 카테고리에서 가장 많이 판매되었는지 등을 파악하는데 사용됩니다.",
     "history": [
       {
         "description": "'order_items.product_id' (INTEGER) — 숫자형. 범위: 1 ~ 5, 평균: 3.0, NULL: 0/10건. 자주 Hard 쿼리에서 참조됨.",
@@ -221,13 +269,19 @@
         "version": 3,
         "updated_at": "2026-06-03T10:35:16.836469",
         "source": "schema_enricher"
+      },
+      {
+        "description": "이 커럼은 제품 ID를 나타내며, 이는 특정 제품이 얼마나 많이 판매되었는지, 어떤 제품 카테고리에서 가장 많이 판매되었는지 등을 파악하는데 사용됩니다.",
+        "version": 4,
+        "updated_at": "2026-06-12T21:21:07.831534",
+        "source": "schema_enricher"
       }
     ]
   },
   "products.product_id": {
     "table": "products",
     "column": "product_id",
-    "current_description": "이 컬럼은 상품 고유 식별자로, 각각의 상품에 대해 고유한 값으로 사용됩니다.",
+    "current_description": "'products.product_id' 컬럼은 제품 고유 식별자 ID를 저장하는 열입니다. 이 ID는 다른 테이블과의 외래 키 제약을 통해 관련 정보와 연결됩니다. 따라서 이 컬럼은 제품의 식별을 위한 기본적인 정보를 제공합니다.",
     "history": [
       {
         "description": "'products.product_id' (INTEGER) — 숫자형. 범위: 1 ~ 5, 평균: 3.0, NULL: 0/5건. 자주 Hard 쿼리에서 참조됨.",
@@ -245,6 +299,12 @@
         "description": "이 컬럼은 상품 고유 식별자로, 각각의 상품에 대해 고유한 값으로 사용됩니다.",
         "version": 3,
         "updated_at": "2026-06-03T10:35:18.015177",
+        "source": "schema_enricher"
+      },
+      {
+        "description": "'products.product_id' 컬럼은 제품 고유 식별자 ID를 저장하는 열입니다. 이 ID는 다른 테이블과의 외래 키 제약을 통해 관련 정보와 연결됩니다. 따라서 이 컬럼은 제품의 식별을 위한 기본적인 정보를 제공합니다.",
+        "version": 4,
+        "updated_at": "2026-06-12T21:21:15.658474",
         "source": "schema_enricher"
       }
     ]
