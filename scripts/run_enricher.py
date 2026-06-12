@@ -114,7 +114,7 @@ def main():
     # 4. KB 준비
     print(f"\n[4/5] KB 로드...")
     kb = SchemaKBUpdater(kb_path)
-    print(f"       기존 KB 엔트리: {len(kb._kb)}개")
+    print(f"       기존 KB 엔트리: {len(kb)}개")
 
     # 5. LLM 탐색 → KB 업데이트
     print(f"\n[5/5] LLM DB 탐색 + KB 업데이트...")
