@@ -1,53 +1,44 @@
-# Schema Enricher 설정 파일
+# Schema Enricher 설정 (CUDA + MLX 공통)
 #
-# 각 팀원은 MODEL_PATH를 자신의 로컬 MLX 모델 경로로 변경해서 사용.
-# 모델은 한 번만 다운로드하면 됨 (~1.8GB, HuggingFace 캐시에 저장).
+# backend: auto  → Mac(Apple Silicon)+MLX 설치 시 mlx, NVIDIA GPU 시 cuda
 #
-# 최초 설치:
-#   source .venv/bin/activate
-#   python3 -c "from mlx_lm import load; load('mlx-community/Qwen2.5-3B-Instruct-4bit')"
+# 패키지:
+#   CUDA 서버: pip install torch transformers accelerate bitsandbytes pyyaml
+#   Mac MLX  : pip install mlx mlx-lm pyyaml
 #
-# 사용 가능한 MLX 모델 예시:
-#   - mlx-community/Qwen2.5-3B-Instruct-4bit   (3B, 1.8GB, 추천)
-#   - mlx-community/Qwen2.5-7B-Instruct-4bit   (7B, 4GB)
-#   - mlx-community/Qwen2.5-Coder-7B-Instruct-4bit (7B 코더 모델)
-#   - mlx-community/Qwen2.5-1.5B-Instruct-4bit (1.5B, 매우 가벼움)
+# 환경별 설정 파일:
+#   enricher_config.cuda.yaml  — GPU 서버 고정
+#   enricher_config.mlx.yaml   — Mac 고정
 
 model:
-  # MLX 포맷 Qwen 모델 (HuggingFace repo ID 또는 로컬 경로)
-  path: "mlx-community/Qwen2.5-3B-Instruct-4bit"
+  backend: "auto"
+
+  # 공통 경로 (지정 시 아래 path_cuda/path_mlx보다 우선)
+  path: ""
+
+  # 백엔드별 기본 모델
+  path_cuda: "Qwen/Qwen2.5-3B-Instruct"
+  path_mlx: "mlx-community/Qwen2.5-3B-Instruct-4bit"
+
+  # CUDA 전용 옵션 (mlx에서는 무시)
+  load_in_4bit: true
+  device_map: "auto"
+  dtype: "auto"
 
 explorer:
-  # ReAct 루프 최대 턴 수
   max_turns: 5
-
-  # LLM 생성 옵션
   max_tokens: 256
   temperature: 0.3
   top_p: 0.9
 
 selector:
-  # 보강 대상 Top-N 컬럼 수
   top_n: 10
-
-  # 최소 스코어 (ref_count=1 인 컬럼 제외)
   min_score: 1.5
-
-  # 동일 (질문, SQL) 중복 집계 방지
   dedup_logs: true
-
-  # 설명이 빈약하다고 판단할 글자 수 기준
   weak_description_threshold: 30
-
-  # 설명 빈약 시 스코어 보정치
   weak_description_bonus: 0.5
 
 paths:
-  # KB 저장 경로 (프로젝트 루트 기준 상대 경로)
   kb: "data/schema/ecommerce_kb.json"
-
-  # DB 경로
   db: "data/samples/ecommerce.sqlite"
-
-  # 로그 경로
   logs: "data/samples/nl2sql_logs.jsonl"

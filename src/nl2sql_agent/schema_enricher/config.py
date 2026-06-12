@@ -18,7 +18,13 @@ except ImportError:
 
 @dataclass
 class ModelConfig:
-    path: str = "mlx-community/Qwen2.5-3B-Instruct-4bit"
+    backend: str = "auto"  # auto | cuda | mlx
+    path: str = ""  # 공통 경로 (비우면 백엔드별 기본 경로 사용)
+    path_cuda: str = "Qwen/Qwen2.5-3B-Instruct"
+    path_mlx: str = "mlx-community/Qwen2.5-3B-Instruct-4bit"
+    load_in_4bit: bool = True
+    device_map: str = "auto"
+    dtype: str = "auto"
 
 
 @dataclass
@@ -115,7 +121,14 @@ def _parse_yaml(path: Path) -> EnricherConfig:
 
     # model
     if "model" in raw:
-        cfg.model.path = raw["model"].get("path", cfg.model.path)
+        m = raw["model"]
+        cfg.model.backend = m.get("backend", cfg.model.backend)
+        cfg.model.path = m.get("path", cfg.model.path)
+        cfg.model.path_cuda = m.get("path_cuda", cfg.model.path_cuda)
+        cfg.model.path_mlx = m.get("path_mlx", cfg.model.path_mlx)
+        cfg.model.load_in_4bit = m.get("load_in_4bit", cfg.model.load_in_4bit)
+        cfg.model.device_map = m.get("device_map", cfg.model.device_map)
+        cfg.model.dtype = m.get("dtype", cfg.model.dtype)
 
     # explorer
     if "explorer" in raw:
