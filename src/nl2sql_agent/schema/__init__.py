@@ -1,4 +1,4 @@
-"""Schema knowledge base and execution-feedback diagnosis (Step 3)."""
+"""Schema knowledge base, execution-feedback diagnosis, and Enricher KB store."""
 
 from .diagnosis import (
     DIAGNOSIS_SYSTEM_PROMPT,
@@ -8,6 +8,17 @@ from .diagnosis import (
     diagnose_failure,
     parse_diagnosis,
 )
+from .kb_store import (
+    ColumnKBEntry,
+    DescriptionVersion,
+    SchemaKBConfig,
+    SchemaKBStore,
+    column_key,
+    format_enriched_note,
+    merge_column_descriptions,
+    resolve_kb_path,
+    save_kb_file,
+)
 from .schema_kb import (
     SchemaKnowledgeBase,
     SchemaNote,
@@ -16,6 +27,15 @@ from .schema_kb import (
 )
 
 __all__ = [
+    "ColumnKBEntry",
+    "DescriptionVersion",
+    "SchemaKBConfig",
+    "SchemaKBStore",
+    "column_key",
+    "format_enriched_note",
+    "merge_column_descriptions",
+    "resolve_kb_path",
+    "save_kb_file",
     "SchemaKnowledgeBase",
     "SchemaNote",
     "extract_tables_from_sql",

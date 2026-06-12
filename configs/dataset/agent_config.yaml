@@ -1,0 +1,9 @@
+# NL2SQL Agent 설정
+
+schema_kb:
+  enabled: true
+  # 명시 경로 (선택). 없으면 path_template으로 db_id별 파일 탐색
+  # path: "data/schema/ecommerce_kb.json"
+  path_template: "data/schema/{db_id}_kb.json"
+  merge_mode: "supplement"
+  include_in_search: true
