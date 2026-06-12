@@ -18,7 +18,7 @@
   하루치 로그
     → Hard 쿼리 필터링
     → 컬럼 참조 분석 (중복 제거, alias 해소)
-    → Qwen 2.5 3B ReAct 탐색 (로컬 MLX)
+    → Qwen 2.5 3B ReAct 탐색 (CUDA GPU / MLX)
     → Schema KB 업데이트 (버저닝)
 ```
 
@@ -34,7 +34,7 @@ flowchart TB
     subgraph BATCH["배치 (하루 1회)"]
         LOG --> FILTER[Hard 필터링]
         FILTER --> SELECTOR[컬럼 선별<br/>중복 제거 + alias 해소]
-        SELECTOR --> LLM[Qwen 2.5 3B<br/>ReAct 탐색]
+        SELECTOR --> LLM[Qwen 2.5 3B<br/>ReAct (CUDA/MLX)]
         LLM --> KB[(Schema KB JSON)]
     end
 
@@ -113,7 +113,7 @@ Turn 2: OUTPUT: 이 컬럼은 주문의 상태를 나타내며, ...
 | 항목 | 값 |
 |------|------|
 | 모델 | Qwen 2.5 3B Instruct (4bit) |
-| 추론 엔진 | MLX (Apple GPU) |
+| 추론 엔진 | CUDA (NVIDIA GPU) 또는 MLX (Apple Silicon) |
 | 메모리 | ~1.8GB |
 | 생성 속도 | ~66 tok/s |
 
@@ -148,7 +148,9 @@ Turn 2: OUTPUT: 이 컬럼은 주문의 상태를 나타내며, ...
 # configs/dataset/enricher_config.yaml
 
 model:
-  path: "mlx-community/Qwen2.5-3B-Instruct-4bit"
+  backend: "cuda"
+  path: "Qwen/Qwen2.5-3B-Instruct"
+  load_in_4bit: true
 
 explorer:
   max_turns: 5
