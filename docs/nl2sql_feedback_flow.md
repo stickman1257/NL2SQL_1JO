@@ -1,7 +1,7 @@
 # NL2SQL 피드백 루프 아키텍처
 
 > **목적:** 사용자 질문 → SQL 생성 → 로그 수집 → Schema Enricher (LLM) → KB 증강 → 성능 향상
-> **최종 수정:** 2026-06-03
+> **최종 수정:** 2026-06-12
 
 ---
 
@@ -119,6 +119,7 @@ Turn 2: OUTPUT: 이 컬럼은 주문의 상태를 나타내며, ...
 
 ### Step 5: SchemaKBUpdater
 
+`SchemaKBStore`를 상속하며, 읽기·병합 로직은 `schema/kb_store.py`와 공유한다.
 모든 설명은 버저닝되어 JSON에 저장된다.
 
 ```json
@@ -196,10 +197,14 @@ Schema Enricher Pipeline — LLM 모드
 
 ## 5. Agent가 참조하는 두 소스
 
-| 소스 | 내용 | 신뢰도 | 변경 주기 |
-|------|------|--------|----------|
-| **DB COMMENT** | `COMMENT ON COLUMN ... IS '...'` | 높음 (고정) | 수동만 |
-| **Schema KB** | 버저닝된 컬럼 설명 JSON | 중간 | 매일 배치 |
+| 소스 | 내용 | 신뢰도 | 변경 주기 | 연동 상태 |
+|------|------|--------|----------|-----------|
+| **DB COMMENT** | CSV `database_description` / DB 메타 | 높음 (고정) | 수동만 | ✅ |
+| **Schema KB** | 버저닝된 컬럼 설명 JSON | 중간 | 매일 배치 | ✅ |
+
+Agent는 `DBSearchTool.build_schema_context()`에서 두 소스를 병합한다.
+KB는 `supplement` 모드로 `enriched_note (vN, 날짜): ...` 형태로 추가된다.
+상세: [schema_kb_integration.md](./schema_kb_integration.md)
 
 ---
 
@@ -207,23 +212,27 @@ Schema Enricher Pipeline — LLM 모드
 
 ```
 NL2SQL_1JO/
-├── configs/dataset/enricher_config.yaml     ← 설정
+├── configs/dataset/
+│   ├── enricher_config.yaml                 ← Enricher 설정
+│   └── agent_config.yaml                    ← Agent KB 연동 설정
 ├── data/
 │   ├── samples/ecommerce.sqlite             ← DB
 │   ├── samples/nl2sql_logs.jsonl            ← 로그
 │   └── schema/ecommerce_kb.json             ← KB (출력)
-├── scripts/run_enricher.py                  ← 실행 스크립트
-├── src/nl2sql_agent/schema_enricher/
-│   ├── config.py          ← 설정 로더
-│   ├── log_filter.py      ← Hard 필터링
-│   ├── column_selector.py ← 컬럼 선별 (alias/중복 제거)
-│   ├── db_explorer.py     ← ReAct LLM 탐색
-│   ├── llm_caller.py      ← MLX LLM 호출
-│   ├── kb_updater.py      ← KB 저장 (버저닝)
-│   └── pipeline.py        ← 오케스트레이션
+├── scripts/run_enricher.py                  ← Enricher 실행
+├── src/nl2sql_agent/
+│   ├── schema/
+│   │   └── kb_store.py                      ← KB 공유 모듈 (읽기·병합)
+│   ├── schema_enricher/
+│   │   ├── kb_updater.py                    ← KB 저장 (SchemaKBStore 상속)
+│   │   └── ...
+│   └── generate_sql/
+│       └── db_search_tool.py                ← KB → schema_context 주입
+├── tests/test_kb_store.py                   ← KB 단위 테스트
 └── docs/
     ├── nl2sql_feedback_flow.md              ← 본 문서
-    └── schema_enricher_setup.md             ← 팀원 셋업 가이드
+    ├── schema_enricher_setup.md             ← Enricher 셋업 가이드
+    └── schema_kb_integration.md             ← KB → SQL 생성 연동
 ```
 
 ---
@@ -235,3 +244,36 @@ NL2SQL_1JO/
 3. **LLM은 로컬에서** — API 비용 0, 1회 다운로드로 재사용
 4. **Hard 쿼리만 집중** — 개선 여지가 큰 Hard에 리소스 집중
 5. **버저닝으로 회복성** — LLM이 틀려도 이전 버전으로 롤백 가능
+
+---
+
+## 8. SQL 생성 시 KB 주입 (구현 완료)
+
+```
+질문
+  → DBSearchTool.search_schema()     ← KB 설명으로 테이블 검색 보강
+  → DBSearchTool.build_schema_context()
+       ├── SQLite PRAGMA + CSV 설명
+       └── SchemaKBStore → enriched_note (vN, 날짜)
+  → SQLWritingTool.write_sql(schema_context)
+  → trace.kb_hits 기록
+```
+
+**컨텍스트 예시:**
+
+```
+  - status TEXT [NOT_NULL] | (CSV 설명)
+    enriched_note (v3, 2026-06-03): 환불·취소·처리 중 등 여러 상태가 존재합니다.
+```
+
+**실행 예시 (ecommerce 샘플):**
+
+```bash
+python3 src/nl2sql_agent/run_generate_sql.py \
+  --database-root data/samples \
+  --db-id ecommerce \
+  --question "환불된 주문이 몇 건인지 알려줘" \
+  --no-execute
+```
+
+상세 설정·CLI·ablation 방법: [schema_kb_integration.md](./schema_kb_integration.md)

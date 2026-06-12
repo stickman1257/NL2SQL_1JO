@@ -62,7 +62,41 @@ selector:
 
 - `data/schema/ecommerce_kb.json` — 버저닝된 컬럼 설명 KB
 - 매일 배치 실행 시 KB 점진적 보강
-- KB를 NL2SQL Agent가 읽어 SQL 생성 컨텍스트로 활용
+- NL2SQL Agent가 `DBSearchTool`을 통해 KB를 읽어 SQL 생성 컨텍스트에 주입 (구현 완료)
+
+### Agent에서 KB 사용 확인
+
+Enricher 실행 후, Agent가 KB를 읽는지 확인:
+
+```bash
+# 샘플 DB 생성 (최초 1회)
+python3 data/samples/setup_sample_db.py
+
+# Enricher로 KB 보강
+python3 scripts/run_enricher.py
+
+# Agent 실행 시 schema_context에 enriched_note 포함 여부 확인
+PYTHONPATH=src python3 -c "
+from pathlib import Path
+from nl2sql_agent.generate_sql.config import DBSearchConfig
+from nl2sql_agent.generate_sql.db_search_tool import DBSearchTool
+from nl2sql_agent.schema.kb_store import SchemaKBConfig
+
+root = Path('.').resolve()
+tool = DBSearchTool(
+    DBSearchConfig(
+        database_root='data/samples',
+        schema_kb=SchemaKBConfig(path='data/schema/ecommerce_kb.json'),
+    ),
+    kb_base_dir=root,
+)
+ctx = tool.build_schema_context('ecommerce', '환불된 주문이 몇 건인지 알려줘', top_k=4)
+print('kb_hits:', tool.last_kb_hits)
+print('enriched_note 포함:', 'enriched_note' in ctx)
+"
+```
+
+상세 연동 설명: [schema_kb_integration.md](./schema_kb_integration.md)
 
 ## 7. 문제 해결
 
