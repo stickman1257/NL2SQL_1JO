@@ -4,9 +4,12 @@ from pathlib import Path
 
 from NL2SQL_1JO.src.nl2sql_agent.generate_sql.agent import NL2SQLAgent
 from NL2SQL_1JO.src.nl2sql_agent.generate_sql.config import AgentConfig, DBSearchConfig, ModelConfig, SQLWriterConfig
+from NL2SQL_1JO.src.nl2sql_agent.schema.kb_store import SchemaKBConfig
 from NL2SQL_1JO.src.nl2sql_agent.generate_sql.db_search_tool import DBSearchTool
 from NL2SQL_1JO.src.nl2sql_agent.generate_sql.llm_client import LLMClientFactory
 from NL2SQL_1JO.src.nl2sql_agent.generate_sql.sql_writing_tool import SQLWritingTool
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def build_output(result, include_trace):
@@ -59,6 +62,9 @@ def main():
     parser.add_argument("--max-repair-rounds", type=int, default=2)
     parser.add_argument("--no-execute", action="store_true")
     parser.add_argument("--include-trace", action="store_true")
+    parser.add_argument("--schema-kb", default=None, help="Schema KB JSON 경로 (프로젝트 루트 기준)")
+    parser.add_argument("--schema-kb-template", default="data/schema/{db_id}_kb.json")
+    parser.add_argument("--no-schema-kb", action="store_true", help="Schema KB 비활성화 (ablation)")
     args = parser.parse_args()
     model_config = ModelConfig(
         model_name=args.model,
@@ -72,11 +78,20 @@ def main():
         openai_base_url=args.openai_base_url,
         openai_api_key=args.openai_api_key,
     )
-    db_config = DBSearchConfig(database_root=args.database_root)
+    schema_kb = None
+    if not args.no_schema_kb:
+        schema_kb = SchemaKBConfig(
+            enabled=True,
+            path=args.schema_kb,
+            path_template=args.schema_kb_template,
+            merge_mode="supplement",
+            include_in_search=True,
+        )
+    db_config = DBSearchConfig(database_root=args.database_root, schema_kb=schema_kb)
     writer_config = SQLWriterConfig(schema_top_k=args.schema_top_k, max_repair_rounds=args.max_repair_rounds)
     agent_config = AgentConfig(execute_sql=not args.no_execute)
     llm = LLMClientFactory.create(model_config)
-    db_tool = DBSearchTool(db_config)
+    db_tool = DBSearchTool(db_config, kb_base_dir=PROJECT_ROOT)
     sql_tool = SQLWritingTool(llm, writer_config)
     agent = NL2SQLAgent(db_tool, sql_tool, agent_config, writer_config)
     result = agent.run(args.question, args.db_id, args.evidence, load_subqueries(args.subqueries))

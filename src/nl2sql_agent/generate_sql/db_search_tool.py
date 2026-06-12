@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from nl2sql_agent.schema.kb_store import SchemaKBStore, merge_column_descriptions
+
 from .config import DBSearchConfig
 from .utils import compact_text, normalize_sql, quote_identifier, rows_to_jsonable, tokenize, unique_keep_order, validate_readonly_sql
 
@@ -71,10 +73,17 @@ class ExecutionResult:
 class DBSearchTool:
     name = "db_search"
 
-    def __init__(self, config: DBSearchConfig):
+    def __init__(self, config: DBSearchConfig, kb_base_dir: Optional[Path] = None):
         self.config = config
         self.root = Path(config.database_root).expanduser().resolve()
+        self.kb_base_dir = (kb_base_dir or Path.cwd()).expanduser().resolve()
         self._schema_cache: Dict[str, SchemaInfo] = {}
+        self._kb_store_cache: Dict[str, Optional[SchemaKBStore]] = {}
+        self._last_kb_hits: List[str] = []
+
+    @property
+    def last_kb_hits(self) -> List[str]:
+        return list(self._last_kb_hits)
 
     def resolve_sqlite_path(self, db_id: str) -> Path:
         candidates = [
@@ -153,7 +162,12 @@ class DBSearchTool:
         schema = self.load_schema(db_id)
         names = list(table_names) if table_names else list(schema.tables.keys())[: self.config.max_tables]
         valid_names = [name for name in names if name in schema.tables]
-        return self._format_schema_context(schema, valid_names, self.config.include_samples if include_samples is None else include_samples)
+        return self._format_schema_context(
+            schema,
+            valid_names,
+            self.config.include_samples if include_samples is None else include_samples,
+            self._get_kb_store(db_id),
+        )
 
     def foreign_keys(self, db_id: str, table_names: Optional[Sequence[str]] = None) -> List[Dict[str, str]]:
         schema = self.load_schema(db_id)
@@ -186,6 +200,8 @@ class DBSearchTool:
 
     def search_schema(self, db_id: str, query: str, top_k: Optional[int] = None) -> List[str]:
         schema = self.load_schema(db_id)
+        kb_store = self._get_kb_store(db_id)
+        kb_config = self.config.schema_kb
         top_k_value = top_k or self.config.max_tables
         query_tokens = set(tokenize(query))
         scored: List[Tuple[float, str]] = []
@@ -193,6 +209,10 @@ class DBSearchTool:
             text_parts = [table_name, table.description]
             for column in table.columns:
                 text_parts.extend([column.name, column.type, column.description, column.value_description])
+                if kb_store and kb_config and kb_config.include_in_search:
+                    kb_entry = kb_store.get_entry(table_name, column.name)
+                    if kb_entry and kb_entry.current_description:
+                        text_parts.append(kb_entry.current_description)
             table_tokens = set(tokenize(" ".join(text_parts)))
             overlap = len(query_tokens & table_tokens)
             exact = 0.0
@@ -221,9 +241,11 @@ class DBSearchTool:
         top_k: Optional[int] = None,
         include_samples: Optional[bool] = None,
     ) -> str:
+        self._last_kb_hits = []
         search_text = "\n".join([question or "", evidence or "", subquery or "", " ".join(op_tags or [])])
         selected_tables = self.search_schema(db_id, search_text, top_k or self.config.max_tables)
         schema = self.load_schema(db_id)
+        kb_store = self._get_kb_store(db_id)
         parts = [f"Database ID: {db_id}", f"SQLite path: {schema.sqlite_path}"]
         if evidence:
             parts.append(f"Evidence: {compact_text(evidence)}")
@@ -231,7 +253,14 @@ class DBSearchTool:
             parts.append(f"Subquery: {compact_text(subquery)}")
         if op_tags:
             parts.append(f"Operation tags: {', '.join(op_tags)}")
-        parts.append(self._format_schema_context(schema, selected_tables, self.config.include_samples if include_samples is None else include_samples))
+        parts.append(
+            self._format_schema_context(
+                schema,
+                selected_tables,
+                self.config.include_samples if include_samples is None else include_samples,
+                kb_store,
+            )
+        )
         return "\n\n".join(part for part in parts if part)
 
     def execute_sql(self, db_id: str, sql: str, max_rows: Optional[int] = None, timeout_s: Optional[float] = None) -> ExecutionResult:
@@ -296,7 +325,26 @@ class DBSearchTool:
                         result.append(other.name)
         return [name for name in unique_keep_order(result) if name in schema.tables][:limit]
 
-    def _format_schema_context(self, schema: SchemaInfo, table_names: Sequence[str], include_samples: bool) -> str:
+    def _get_kb_store(self, db_id: str) -> Optional[SchemaKBStore]:
+        if db_id in self._kb_store_cache:
+            return self._kb_store_cache[db_id]
+        kb_config = self.config.schema_kb
+        if not kb_config or not kb_config.enabled:
+            self._kb_store_cache[db_id] = None
+            return None
+        store = SchemaKBStore.from_config(kb_config, db_id, self.kb_base_dir)
+        self._kb_store_cache[db_id] = store
+        return store
+
+    def _format_schema_context(
+        self,
+        schema: SchemaInfo,
+        table_names: Sequence[str],
+        include_samples: bool,
+        kb_store: Optional[SchemaKBStore] = None,
+    ) -> str:
+        kb_config = self.config.schema_kb
+        merge_mode = kb_config.merge_mode if kb_config else "supplement"
         parts = ["Selected schema:"]
         for table_name in table_names[: self.config.max_tables]:
             table = schema.tables[table_name]
@@ -313,10 +361,29 @@ class DBSearchTool:
                 if column.not_null:
                     flags.append("NOT_NULL")
                 flag_text = f" [{', '.join(flags)}]" if flags else ""
-                desc = ""
-                if self.config.include_descriptions and (column.description or column.value_description):
-                    desc = f" | {compact_text(' '.join([column.description, column.value_description]))}"
-                parts.append(f"  - {column.name} {column.type}{flag_text}{desc}")
+                kb_entry = kb_store.get_entry(table.name, column.name) if kb_store else None
+                if self.config.include_descriptions:
+                    primary_desc, enriched_line, kb_hit = merge_column_descriptions(
+                        column.description,
+                        column.value_description,
+                        kb_entry,
+                        merge_mode=merge_mode,
+                    )
+                else:
+                    primary_desc, enriched_line, kb_hit = merge_column_descriptions(
+                        "",
+                        "",
+                        kb_entry,
+                        merge_mode=merge_mode,
+                    )
+                if kb_hit:
+                    self._last_kb_hits.append(kb_hit)
+                line = f"  - {column.name} {column.type}{flag_text}"
+                if primary_desc:
+                    line += f" | {compact_text(primary_desc)}"
+                parts.append(line)
+                if enriched_line:
+                    parts.append(f"    {enriched_line}")
             for fk in table.foreign_keys:
                 parts.append(f"  FK: {fk.table}.{fk.column} -> {fk.ref_table}.{fk.ref_column}")
             if include_samples and self.config.sample_rows > 0:

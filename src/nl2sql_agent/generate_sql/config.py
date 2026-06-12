@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from nl2sql_agent.schema.kb_store import SchemaKBConfig
+
 
 @dataclass
 class ModelConfig:
@@ -30,6 +32,7 @@ class DBSearchConfig:
     count_rows: bool = False
     execution_timeout_s: float = 15.0
     max_result_rows: int = 50
+    schema_kb: Optional[SchemaKBConfig] = None
 
 
 @dataclass
