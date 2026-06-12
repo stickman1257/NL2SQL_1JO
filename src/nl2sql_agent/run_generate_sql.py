@@ -2,12 +2,12 @@ import argparse
 import json
 from pathlib import Path
 
-from NL2SQL_1JO.src.nl2sql_agent.generate_sql.agent import NL2SQLAgent
-from NL2SQL_1JO.src.nl2sql_agent.generate_sql.config import AgentConfig, DBSearchConfig, ModelConfig, SQLWriterConfig
-from NL2SQL_1JO.src.nl2sql_agent.schema.kb_store import SchemaKBConfig
-from NL2SQL_1JO.src.nl2sql_agent.generate_sql.db_search_tool import DBSearchTool
-from NL2SQL_1JO.src.nl2sql_agent.generate_sql.llm_client import LLMClientFactory
-from NL2SQL_1JO.src.nl2sql_agent.generate_sql.sql_writing_tool import SQLWritingTool
+from nl2sql_agent.generate_sql.agent import NL2SQLAgent
+from nl2sql_agent.generate_sql.config import AgentConfig, DBSearchConfig, ModelConfig, SQLWriterConfig
+from nl2sql_agent.schema.kb_store import SchemaKBConfig
+from nl2sql_agent.generate_sql.db_search_tool import DBSearchTool
+from nl2sql_agent.generate_sql.llm_client import LLMClientFactory
+from nl2sql_agent.generate_sql.sql_writing_tool import SQLWritingTool
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
