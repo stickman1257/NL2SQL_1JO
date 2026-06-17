@@ -25,22 +25,22 @@
 ```mermaid
 flowchart TB
     subgraph REAL_TIME["실시간"]
-        USER[사용자 질문] --> NL2SQL[NL2SQL Agent]
-        NL2SQL --> EXEC[SQL 실행]
-        EXEC --> RESULT[결과 반환]
-        EXEC -.-> LOG[(JSONL 로그)]
+        USER["사용자 질문"] --> NL2SQL["NL2SQL Agent"]
+        NL2SQL --> EXEC["SQL 실행"]
+        EXEC --> RESULT["결과 반환"]
+        EXEC -.-> LOG[("JSONL 로그")]
     end
 
     subgraph BATCH["배치 (하루 1회)"]
-        LOG --> FILTER[Hard 필터링]
-        FILTER --> SELECTOR[컬럼 선별<br/>중복 제거 + alias 해소]
-        SELECTOR --> LLM[Qwen 2.5 3B<br/>ReAct (CUDA/MLX)]
-        LLM --> KB[(Schema KB JSON)]
+        LOG --> FILTER["Hard 필터링"]
+        FILTER --> SELECTOR["컬럼 선별<br/>중복 제거 + alias 해소"]
+        SELECTOR --> LLM["Qwen 2.5 3B<br/>ReAct (CUDA/MLX)"]
+        LLM --> KB[("Schema KB JSON")]
     end
 
     subgraph FEEDBACK["피드백"]
         KB -.->|다음날 참조| NL2SQL
-        DB[(DB COMMENT)] -.->|고정 참조| NL2SQL
+        DB[("DB COMMENT")] -.->|고정 참조| NL2SQL
     end
 ```
 
