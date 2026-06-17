@@ -128,7 +128,13 @@ class NL2SQLAgent:
             TraceEvent(
                 self.db_search_tool.name,
                 "build_schema_context",
-                {"db_id": db_id, "question": question, "evidence": evidence, "subquery": spec.to_dict()},
+                {
+                    "db_id": db_id,
+                    "question": question,
+                    "evidence": evidence,
+                    "subquery": spec.to_dict(),
+                    "kb_hits": self.db_search_tool.last_kb_hits,
+                },
                 schema_context,
             )
         )

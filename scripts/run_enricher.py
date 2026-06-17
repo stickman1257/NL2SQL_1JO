@@ -7,6 +7,9 @@ LLM 기반 DBExplorerAgent로 컬럼 설명을 생성하고 KB에 저장한다.
 사용법:
     python3 scripts/run_enricher.py
     python3 scripts/run_enricher.py --config configs/dataset/enricher_config.yaml
+    python3 scripts/run_enricher.py --backend mlx
+    python3 scripts/run_enricher.py --config configs/dataset/enricher_config.cuda.yaml
+    python3 scripts/run_enricher.py --config configs/dataset/enricher_config.mlx.yaml
 """
 
 import json
@@ -22,6 +25,7 @@ from nl2sql_agent.schema_enricher.log_filter import HardQueryFilter, FilterConfi
 from nl2sql_agent.schema_enricher.column_selector import ColumnSelector, SelectorConfig
 from nl2sql_agent.schema_enricher.kb_updater import SchemaKBUpdater
 from nl2sql_agent.schema_enricher.db_explorer import DBExplorerAgent, ExplorerConfig
+from nl2sql_agent.schema_enricher.llm_caller import create_llm_caller, normalize_backend, resolve_model_path
 
 
 # ------------------------------------------------------------------
@@ -56,11 +60,16 @@ def make_sql_executor(db_path: str):
 def main():
     # 설정 로드
     config_path = None
+    backend_override = None
     for i, arg in enumerate(sys.argv):
         if arg == "--config" and i + 1 < len(sys.argv):
             config_path = sys.argv[i + 1]
+        if arg == "--backend" and i + 1 < len(sys.argv):
+            backend_override = sys.argv[i + 1]
 
     cfg = load_config(config_path)
+    if backend_override:
+        cfg.model.backend = backend_override
 
     # 절대 경로로 변환
     root = PROJECT_ROOT
@@ -68,10 +77,19 @@ def main():
     db_path = root / cfg.paths.db
     log_path = root / cfg.paths.logs
     kb_path = str(root / cfg.paths.kb)
+    mc = cfg.model
+    resolved_backend = normalize_backend(mc.backend)
+    resolved_model = resolve_model_path(
+        resolved_backend,
+        path=mc.path,
+        path_cuda=mc.path_cuda,
+        path_mlx=mc.path_mlx,
+    )
 
     print("=" * 60)
     print("Schema Enricher Pipeline — LLM 모드")
-    print(f"모델 : {cfg.model.path}")
+    print(f"백엔드: {mc.backend} → {resolved_backend}")
+    print(f"모델 : {resolved_model}")
     print(f"DB   : {db_path}")
     print(f"LOG  : {log_path}")
     print(f"KB   : {kb_path}")
@@ -114,20 +132,24 @@ def main():
     # 4. KB 준비
     print(f"\n[4/5] KB 로드...")
     kb = SchemaKBUpdater(kb_path)
-    print(f"       기존 KB 엔트리: {len(kb._kb)}개")
+    print(f"       기존 KB 엔트리: {len(kb)}개")
 
     # 5. LLM 탐색 → KB 업데이트
     print(f"\n[5/5] LLM DB 탐색 + KB 업데이트...")
 
-    from nl2sql_agent.schema_enricher.llm_caller import create_mlx_caller
-
     sql_executor = make_sql_executor(str(db_path))
     ec = cfg.explorer
-    llm_caller = create_mlx_caller(
-        model_name=cfg.model.path,
+    llm_caller = create_llm_caller(
+        backend=mc.backend,
+        model_name=mc.path or None,
+        path_cuda=mc.path_cuda,
+        path_mlx=mc.path_mlx,
         max_tokens=ec.max_tokens,
         temperature=ec.temperature,
         top_p=ec.top_p,
+        device_map=mc.device_map,
+        load_in_4bit=mc.load_in_4bit,
+        dtype=mc.dtype,
     )
 
     explorer = DBExplorerAgent(ExplorerConfig(

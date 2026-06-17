@@ -1,0 +1,24 @@
+# Apple Silicon Mac 전용 (MLX)
+# 사용: python3 scripts/run_enricher.py --config configs/dataset/enricher_config.mlx.yaml
+
+model:
+  backend: "mlx"
+  path_mlx: "mlx-community/Qwen2.5-3B-Instruct-4bit"
+
+explorer:
+  max_turns: 5
+  max_tokens: 256
+  temperature: 0.3
+  top_p: 0.9
+
+selector:
+  top_n: 10
+  min_score: 1.5
+  dedup_logs: true
+  weak_description_threshold: 30
+  weak_description_bonus: 0.5
+
+paths:
+  kb: "data/schema/ecommerce_kb.json"
+  db: "data/samples/ecommerce.sqlite"
+  logs: "data/samples/nl2sql_logs.jsonl"
